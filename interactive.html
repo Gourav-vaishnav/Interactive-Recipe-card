@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Recipe Card</title>
+  <style>
+    /* Variables for colors and fonts */
+    :root {
+      --primary-color: #ff6b6b;
+      --primary-hover: #ff4040;
+      --text-color: #333;
+      --muted-color: #666;
+      --bg-light: #f8f8f8;
+      --bg-highlight: #ffecec;
+      --font-family: Arial, sans-serif;
+    }
+
+    body {
+      font-family: var(--font-family);
+      margin: 0;
+      padding: 0;
+      background: var(--bg-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    article.recipe-card {
+      background: #fff;
+      width: 90%;
+      max-width: 600px;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      overflow: hidden;
+      animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .recipe-image {
+      width: 30%;
+      height: 0.2%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    header h1 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      text-align: center;
+      color: var(--text-color);
+    }
+
+    .meta {
+      text-align: center;
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: var(--muted-color);
+    }
+
+    .timer {
+      text-align: center;
+      font-size: 16px;
+      margin: 10px 0;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    button {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px 0;
+      transition: background 0.3s;
+    }
+    button:hover { background: var(--primary-hover); }
+
+    section {
+      margin-bottom: 20px;
+    }
+
+    .ingredients li, .steps li {
+      margin-bottom: 8px;
+      transition: color 0.3s, transform 0.3s;
+    }
+    .ingredients li:hover, .steps li:hover {
+      color: var(--primary-color);
+      transform: translateX(5px);
+    }
+
+    .hidden { display: none; }
+    .active-step { background: var(--bg-highlight); }
+
+    .progress {
+      background: #eee;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 15px 0;
+      height: 12px;
+    }
+    .progress-bar {
+      width: 0;
+      height: 100%;
+      background: var(--primary-color);
+      transition: width 0.5s ease;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      header h1 { font-size: 20px; }
+      .content { padding: 15px; }
+    }
+
+    /* Print-Friendly */
+    @media print {
+      body { background: white; }
+      article.recipe-card { box-shadow: none; border-radius: 0; }
+      button, .progress, .timer { display: none !important; }
+      .recipe-image { max-height: 200px; object-fit: cover; }
+    }
+  </style>
+</head>
+<body>
+
+  <article class="recipe-card">
+    <img class="recipe-image" 
+    src="https://imgs.search.brave.com/xyLoeW2uEZViHnUJEHtW0Ie9yrqxgpo4Px7ljVflt74/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tYXJr/ZXRwbGFjZS5jYW52/YS5jb20vUHFEYm8v/TUFGdEZfUHFEYm8v/MS90bC9jYW52YS1j/aG9jb2xhdGUtZWRp/dG9yaWFsLWRlbGlj/aW91cy1jaG9jb2xh/dGUtY2FrZS1NQUZ0/Rl9QcURiby5qcGc" alt="Chocolate Cake" >
+    <div class="content">
+      <header>
+        <h1>Chocolate Cake</h1>
+        <p class="meta" id="prepMeta">Prep Time: 45 mins | Servings: 6</p>
+      </header>
+
+      <div style="display: flex; align-items: center; justify-content: center; gap: 16px;">
+        <canvas id="clockCanvas" width="40" height="40" style="background:transparent;"></canvas>
+        <div class="timer hidden" id="timer">Time: 45:00</div>
+      </div>
+
+      <section>
+        <button id="toggleIngredients">Show Ingredients</button>
+        <ul class="ingredients hidden">
+          <li>2 cups flour</li>
+          <li>1 cup sugar</li>
+          <li>1/2 cup cocoa powder</li>
+          <li>1 tsp baking soda</li>
+          <li>2 eggs</li>
+          <li>1 cup milk</li>
+        </ul>
+      </section>
+
+      <section>
+        <button id="toggleSteps">Show Steps</button>
+        <ol class="steps hidden">
+          <li>Preheat the oven to 180°C (350°F).</li>
+          <li>Mix all dry ingredients together.</li>
+          <li>Add eggs and milk, then whisk until smooth.</li>
+          <li>Pour into a baking tin and bake for 20 mins.</li>
+          <li>Cool, slice, and serve!</li>
+        </ol>
+      </section>
+
+      <div class="progress">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <button id="startBtn">Start Cooking</button>
+      <button id="nextBtn" class="hidden">Next Step</button>
+      <button id="printBtn">Print Recipe</button>
+      <div style="display: flex; justify-content: center; margin-top: 10px;">
+        <button id="resetBtn" style="margin: 0 auto;">Reset</button>
+      </div>
+    </div>
+  </article>
+
+  <script>
+    const toggleIngredients = document.getElementById('toggleIngredients');
+    const ingredients = document.querySelector('.ingredients');
+    const toggleSteps = document.getElementById('toggleSteps');
+    const steps = document.querySelector('.steps');
+    const startBtn = document.getElementById('startBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const printBtn = document.getElementById('printBtn');
+    //  resetBtn = document.getElementById('resetBtn');
+    const progressBar = document.getElementById('progressBar');
+    const timerDisplay = document.getElementById('timer');
+    const prepMeta = document.getElementById('prepMeta');
+    const clockCanvas = document.getElementById('clockCanvas');
+    let currentStep = 0;
+    let timerInterval;
+    let timeLeft;
+
+    // Parse prep time from meta text (in minutes)
+    const prepTimeMatch = prepMeta.textContent.match(/(\d+)\s*mins?/i);
+    const prepMinutes = prepTimeMatch ? parseInt(prepTimeMatch[1]) : 40; // fallback 40 mins
+
+    toggleIngredients.addEventListener('click', () => {
+      ingredients.classList.toggle('hidden');
+      toggleIngredients.textContent = ingredients.classList.contains('hidden') ? 
+        "Show Ingredients" : "Hide Ingredients";
+    });
+
+    toggleSteps.addEventListener('click', () => {
+      steps.classList.toggle('hidden');
+      toggleSteps.textContent = steps.classList.contains('hidden') ? 
+        "Show Steps" : "Hide Steps";
+    });
+
+    startBtn.addEventListener('click', () => {
+      steps.classList.remove('hidden');
+      toggleSteps.textContent = "Hide Steps";
+      currentStep = 0;
+      highlightStep();
+      startBtn.classList.add('hidden');
+      nextBtn.classList.remove('hidden');
+      startCountdown(prepMinutes * 60);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      currentStep++;
+      if (currentStep < steps.children.length) {
+        highlightStep();
+      } else {
+        stopTimer();
+        alert("Recipe completed! Hope you enjoyed cooking 🎉");
+        nextBtn.classList.add('hidden');
+      }
+    });
+
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+
+    // Already in HTML, so get it:
+    // const clockCanvas = document.getElementById('clockCanvas');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Draw analog clock
+    function drawClock(mins, secs) {
+      const ctx = clockCanvas.getContext('2d');
+      ctx.clearRect(0, 0, 40, 40);
+      // Clock face
+      ctx.beginPath();
+      ctx.arc(20, 20, 18, 0, 2 * Math.PI);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Minute hand
+      const minAngle = ((mins % 60) / 60) * 2 * Math.PI - Math.PI/2;
+      ctx.beginPath();
+      ctx.moveTo(20, 20);
+      ctx.lineTo(20 + 12 * Math.cos(minAngle), 20 + 12 * Math.sin(minAngle));
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Second hand
+      const secAngle = ((secs % 60) / 60) * 2 * Math.PI - Math.PI/2;
+      ctx.beginPath();
+      ctx.moveTo(20, 20);
+      ctx.lineTo(20 + 15 * Math.cos(secAngle), 20 + 15 * Math.sin(secAngle));
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Update timer display and clock
+    function updateTimerDisplay() {
+      const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+      const secs = String(timeLeft % 60).padStart(2, '0');
+      timerDisplay.textContent = `Time Left: ${mins}:${secs}`;
+      drawClock(Math.floor(timeLeft / 60), timeLeft % 60);
+    }
+
+    // Draw initial clock
+    drawClock(prepMinutes, 0);
+
+    // Reset functionality
+    resetBtn.addEventListener('click', () => {
+      stopTimer();
+      // Reset steps
+      currentStep = 0;
+      [...steps.children].forEach(li => li.classList.remove('active-step'));
+      steps.classList.add('hidden');
+      toggleSteps.textContent = "Show Steps";
+      // Reset ingredients
+      ingredients.classList.add('hidden');
+      toggleIngredients.textContent = "Show Ingredients";
+      // Reset progress bar
+      progressBar.style.width = '0%';
+      // Reset timer
+      timerDisplay.classList.add('hidden');
+      timeLeft = prepMinutes * 60;
+      drawClock(prepMinutes, 0);
+      // Show start button, hide next
+      startBtn.classList.remove('hidden');
+      nextBtn.classList.add('hidden');
+    });
+
+    function highlightStep() {
+      [...steps.children].forEach((li, index) => {
+        li.classList.toggle('active-step', index === currentStep);
+      });
+      const progress = ((currentStep+1) / steps.children.length) * 100;
+      progressBar.style.width = progress + '%';
+    }
+
+    function startCountdown(seconds) {
+      timeLeft = seconds;
+      timerDisplay.classList.remove('hidden');
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+          stopTimer();
+          alert("⏰ Time’s up! Check your dish.");
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+  </script>
+</body>
+</html>
